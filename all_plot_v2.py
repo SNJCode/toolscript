@@ -7,20 +7,15 @@ import numpy as np
 from PyQt5.QtWidgets import QFileDialog,QWidget,QApplication
 import matplotlib.pylab as plt
 import scipy
-
 import sys
 from PyQt5.QtWidgets import QApplication,QPushButton,QDialog,QAbstractItemView,QLabel,QHBoxLayout, QWidget, QVBoxLayout, QListWidget,QListWidgetItem
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QTimer
-
-
 from PyQt5.QtWidgets import QApplication,QWidget,QFileDialog,QVBoxLayout
 from matplotlib.figure import Figure
 from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvas
-
-
 
 class MyPltQWidget(QWidget):
     def __init__(self, parent=None) :
@@ -37,8 +32,6 @@ class MyPltQWidget(QWidget):
             self._static_ax.plot(nn[:,0],norlist,label=i[0])
         self._static_ax.legend()
         
-        
-###########
 global_list=[]
 class MyWidget(QDialog):
     def __init__(self):
@@ -48,7 +41,7 @@ class MyWidget(QDialog):
         self.ro2=0
         self.list_widget = QListWidget(self)
         self.list_widget.setSelectionMode(QAbstractItemView.NoSelection)
-        # Add the QListWidget to a QVBoxLayout
+        
         layout = QVBoxLayout()
         self.ti=300
         layout.addWidget(self.list_widget)
@@ -63,9 +56,8 @@ class MyWidget(QDialog):
         item = QListWidgetItem(self.list_widget)
         widget=QWidget(self.list_widget)   
         layout = QHBoxLayout()
-        # Create the QLabel widgets
-        xx=len(self.ll)
-        label = QLabel(str(xx+1))
+    
+        label = QLabel(str(len(self.ll)+1))
         label1 = QLabel(text)
         label1.adjustSize()
         self.ll.append(label1)
@@ -80,7 +72,6 @@ class MyWidget(QDialog):
         button2.clicked.connect(lambda: self.move_item_down(item))
         button2.pressed.connect(lambda: self.move_item_press(item))
         layout.addWidget(label)
-        # Add the QLabel widgets to the QHBoxLayout
         layout.addWidget(label1)
         layout.addWidget(button1)
         layout.addWidget(button2)
@@ -94,11 +85,11 @@ class MyWidget(QDialog):
         self.list_widget.setItemWidget(item, widget)
         item.setSelected(False)
         item.setSizeHint(QSize(self.list_widget.width(),50))
-        #item.setBackground(QColor(col))
+        
         self.list_widget.addItem(item)
         self.resize(QSize(1000,600))
+        
     def move_item_press(self, item):
-        # Show a message box with the text of the clicked item
         row = self.list_widget.row(item)
         self.ll[row].setStyleSheet('background-color:rgba(0, 132, 255)')
         self.timer2.start(self.ti)
@@ -242,14 +233,14 @@ class fileDialogdemo(QWidget):
 
         while True:
             while True:
-                x_min = input('X min ')
+                x_min = input('X min, input num or q is quit ')
                 if x_min =='q':
                     quit()
                 if  x_min.isdigit():
                     break 
 
             while True:
-                x_max = input('X max ')
+                x_max = input('X max, input num or q is quit ')
                 if x_max =='q':
                     quit()
                 if  x_max.isdigit():
@@ -266,8 +257,8 @@ class fileDialogdemo(QWidget):
             myplt2.show()
             myplt.show()
             
-            x_max = input('is quit open origin ')
-            if x_max =='q':
+            is_origin = input('is quit open origin,input q or other ')
+            if  is_origin =='q':
                 break         
         ###############################
         if platform.system ().lower () != 'windows':
@@ -282,14 +273,14 @@ class fileDialogdemo(QWidget):
         set_origin_plot(data_list2,21,3,gp,mxs)
         
         while True:
-                y_max = input('advandce smooth  obb num  ')
-                if y_max =='q':
+                obb_num = input('smooth  obb num, input num or q is quit  ')
+                if obb_num =='q':
                     break
-                tm=int(y_max)
+                tm=int(obb_num)
                 if tm%2 == 1 :
                     #********************************************
-                    y_max = input('advandce smooth  k  num  ')
-                    tk=int(y_max)
+                    k_num = input('smooth  k  num, input num or q is quit  ')
+                    tk=int(k_num)
                     if tk >2 and tk < tm:
                         mxs = op.new_sheet('w','x limit normal Product {}_{}'.format(tm,tk), hidden=False)
                         gp = op.new_graph('plot_g {}_{}'.format(tm,tk),template='LINE_plot')
