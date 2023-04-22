@@ -11,7 +11,7 @@
 </ul>
 <h2>Installation</h2>
 <ul>
-<li>Python<pre><code>pip install numpy pandas pyqt5 originpro scipy </code></pre>
+<li>Python<pre><code>pip install numpy pandas pyqt5 originpro scipy matplotlib </code></pre>
 </li>
 <li>Origin<pre><code>  Generate the template style you want, place it in origin's directory, and call the template in python code</code></pre>
 </li>
