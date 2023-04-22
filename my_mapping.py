@@ -108,7 +108,7 @@ def find_df_borden(df,col_min,col_max,row_min,row_max,min_top,max_col,max_row,so
 def spread_area(df,col_min,col_max,row_min,row_max,max_col,max_row,max_size):
     
     left=df.iloc[row_min:row_max,col_min]
-    #print(left.max(),max_size)
+    
     if left.max() > max_size:
         if col_min -1 > 0:
             col_min=col_min-1
@@ -153,16 +153,10 @@ def del_area(df,row_index,col_index,max_size,heat_map,i):
 def find_nerigh(df,row,col,max_size):
     col_list=list(df.columns)
     row_list=list(df.index)
-    #print('find_nerigh',col,col_list)
-    #try:
     source_col=col_list.index(col)
     source_row=row_list.index(row)
-    #except:
-        #source_col=col_list.index(row)
-        #source_row=row_list.index(col)
     max_col=len(col_list)
-    max_row=len(row_list)
-  
+    max_row=len(row_list) 
     min_top=max_size*0.2
     
     col_min=source_col
@@ -172,19 +166,17 @@ def find_nerigh(df,row,col,max_size):
 
     col_min,col_max,row_min,row_max=find_df_borden(df,col_min,col_max,row_min,row_max,min_top,max_col,max_row,source_col,source_row)
     while True:
-        #print('aaaaa',col_min,col_max,row_min,row_max,max_col,max_row,min_top)
         _col_min,_col_max,_row_min,_row_max=spread_area(df,col_min,col_max,row_min,row_max,max_col,max_row,min_top)
-        #print('bbbb',_col_min,_col_max,_row_min,_row_max,max_col,max_row,min_top)
         if _col_min == col_min and _col_max == col_max and _row_min == row_min and _row_max == row_max:
             col_min,col_max,row_min,row_max=_col_min,_col_max,_row_min,_row_max
             break
-        #print('is diff')
+        
         col_min,col_max,row_min,row_max=_col_min,_col_max,_row_min,_row_max
 
     for i in range(col_min,col_max+1):
         for j in range(row_min,row_max+1):
             df.iloc[j,i]=0
-    #print('end area',col_min,col_max,row_min,row_max)
+   
     return     col_min,col_max,row_min,row_max 
 
 ##############################################################################################################
@@ -267,7 +259,7 @@ def read_4700(path):
         return _,False
     ex=pd.read_excel(path,header=icc+2,index_col=0)
     
-    #print(ex2)
+
     return ex.T,True
 
 ##############################################################################################################
@@ -335,7 +327,6 @@ myLine.color=color(white);''')
     for i in k:
         gp.lt_exec(i)
             
-    print('*'*30,'\n')
     ma
     op.exit() 
 ##############################################################################################################     
@@ -445,35 +436,35 @@ def get_ymin(df,ymin,ymax):
     
 def get_range(df):
     while True:
-            x_min = input('X min ')
+            x_min = input('X min,input num or q is quit ')
             if x_min =='q':
                 quit()
             if  x_min.isdigit():
                break 
 
     while True:
-        x_max = input('X max ')
+        x_max = input('X max,input num or q is quit ')
         if x_max =='q':
             quit()
         if  x_max.isdigit():
             break 
 
     while True:
-        y_min = input('Y min ')
+        y_min = input('Y min,input num or q is quit ')
         if y_min =='q':
             quit()
         if  y_min.isdigit():
             break        
     
     while True:
-        y_max = input('Y max ')
+        y_max = input('Y max,input num or q is quit ')
         if y_max =='q':
             quit()
         if  y_max.isdigit():
             break  
               
     while True:
-        grid_num= input('input grid num 0-3 ')
+        grid_num= input('input grid num 0-3,input num or q is quit ')
         if grid_num == 'q':
             quit()
         if  grid_num.isdigit():
@@ -519,8 +510,6 @@ def read_d(path,pa):
             if  peek.isdigit():
                 break  
             
-               
-
         if not sd_window is None:
             sd_window.close()
         sd_window=MyQWidget()
@@ -529,10 +518,10 @@ def read_d(path,pa):
         global_sd.show()
 
         while True:
-            x_min = input('open origin is  ')
-            if x_min =='q':
+            is_origin = input('open origin is,input 1 or q is quit  ')
+            if is_origin =='q':
                 quit()
-            if  int(x_min)==1: 
+            if  int(is_origin)==1: 
                 if platform.system ().lower () == 'windows':
                     origin(df_global,df,r,c)
                 break
@@ -543,8 +532,6 @@ class fileDialogdemo(QWidget):
     def __init__(self,parent=None):
         
         super(fileDialogdemo, self).__init__(parent)
-        #self.layout = QtWidgets.QVBoxLayout(self)
-        #实例化QFileDialog
         dig=QFileDialog()
         if dig.exec():
             filenames=dig.selectedFiles()
@@ -554,14 +541,10 @@ class fileDialogdemo(QWidget):
 
         read_d(filenames[0],self)
         
-    #def get_lay(self):
-     #    return self.layout
-           
-
+          
 import sys
 if __name__=="__main__":
     app = QApplication(sys.argv)
-
     ex=fileDialogdemo()
     ex.show()
     sys.exit(app.exec_())
