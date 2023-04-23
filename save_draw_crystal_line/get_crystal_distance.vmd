@@ -1,0 +1,1174 @@
+set maxindex 3
+draw delete  all
+
+
+
+
+
+
+proc get_center {} {
+	set sel2 [atomselect top all]
+	set cenxyz2 [measure center $sel2]
+	set cenx2 [lindex $cenxyz2 0]
+	set ceny2 [lindex $cenxyz2 1]
+	set cenz2 [lindex $cenxyz2 2]
+	for {set i 1} {$i<=50} {incr i} {
+		set thres2 [expr 0.05*$i]
+		set sel2 [atomselect top "(x-$cenx2)**2+(y-$ceny2)**2+(z-$cenz2)**2 < $thres2**2"]
+		if {[$sel2 num]>0} {break}
+	}
+	set cenfrag [lindex [$sel2 get fragment] 0]
+	puts [ format "same fragment as  within  3.8 of fragment %s"  $cenfrag ] 
+	set ff [ atomselect top "same fragment as  exwithin  3.8 of fragment $cenfrag" ]
+	set list_fra [ lsort -unique [  $ff get fragment ] ]
+	puts $list_fra
+	
+	
+	
+mol delrep all all
+
+mol selection "fragment  $cenfrag"
+mol  addrep  top
+mol modstyle 0 top CPK 0.800000 0.300000 22.000000 22.000000
+mol modmaterial 0 top Diffuse
+
+
+mol representation Lines 1.0 
+mol selection "same fragment as  exwithin  3.8 of fragment $cenfrag"
+mol addrep top
+ 	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### get fragment center vector to atom
+proc get_atom_vec { a } {
+	set ret {}
+	set a1 [ atomselect top " index $a"]
+	set fra [ $a1 get fragment ]
+	#puts ff--$fra
+	set vec1 [ measure center [ atomselect top "fragment  $fra" ] ]
+	#puts  fff-----$vec1 
+	set vec2 [ lindex [ $a1 get { x y z}] 0 ]
+	#puts  xyz--$vec2 
+
+	set x1 [ expr [ lindex $vec1 0 ]-[ lindex $vec2 0 ] ]
+	#puts $x1
+
+	set x2 [ expr [ lindex $vec1 1 ]-[ lindex $vec2 1 ] ]
+	#puts $x2
+
+	set x3 [ expr [ lindex $vec1 2 ]-[ lindex $vec2 2 ] ]
+	#puts $x3
+
+	lappend ret $x1
+	lappend ret $x2
+	lappend ret $x3
+	lappend ret $fra
+	return $ret
+}
+############################
+set drawidlist {}
+
+proc deldrawid {} {
+	global drawidlist
+	foreach i $drawidlist {
+		draw delete $i
+	}
+	set drawidlist {}
+}
+
+proc add_drawidlist { a } {
+	global drawidlist
+	lappend drawidlist $a
+}
+###########################################
+set benlistall {}
+set gl_vl ""
+
+#### find atom by fragment center vector
+proc find_atom { x y z  fra } {
+	global gl_vl
+	set vec1 [ measure center [ atomselect top "fragment  $fra" ] ]
+	#puts vvv--$vec1
+	set x1 [expr [ lindex $vec1 0]-$x]
+	set y1 [expr [ lindex $vec1 1]-$y]
+	set z1 [expr [ lindex $vec1 2]-$z]
+	#puts $x1
+	#puts $y1
+	#puts $z1
+	set thres2 0.01
+	set sel2 [ [atomselect top "(x-$x1)**2+(y-$y1)**2+(z-$z1)**2 < $thres2**2"] list ]
+	if { [ llength $sel2] > 0} { 
+		#puts  $sel2 
+		append gl_vl " $sel2" 
+	}
+}
+
+### find all same vector atom
+proc find_all_atom { x y z } {
+	global gl_vl
+	set gl_vl ""
+	set list_fra [ lsort -unique [   [ atomselect top all ]  get fragment ] ]
+	#puts $list_fra 
+	foreach i $list_fra {
+		find_atom $x $y $z  $i
+	}
+	#puts $gl_vl
+}
+
+
+
+proc index_find { a } {
+
+	set xx [ get_atom_vec $a ]
+	set xx1 [lindex $xx 0 ]
+	set xx2 [lindex $xx 1 ]
+	set xx3 [lindex $xx 2 ]
+	set xx4 [lindex $xx 3 ]
+	find_all_atom $xx1 $xx2 $xx3 
+}
+
+##################################################
+
+###### get two coordinate vector
+proc get_vec { a b } {
+
+		set x [ expr [lindex $a 0]- [lindex $b 0] ]
+		set y [ expr [lindex $a 1]- [lindex $b 1] ]
+		set z [ expr [lindex $a 2]- [lindex $b 2] ]
+		set re {}
+		lappend re $x
+		lappend re $y
+		lappend re $z
+		return $re
+}
+
+############  
+proc check_same_vec { curent_vec single_vec } {
+		set inf 0.001
+
+		set c0 [ lindex $curent_vec  0]
+		set c1 [ lindex $curent_vec  1]
+		set c2 [ lindex $curent_vec  2]
+		
+		set s0 [ lindex $single_vec 0]
+		set s1 [ lindex $single_vec 1]
+		set s2 [ lindex $single_vec 2]
+			
+		set va0 [ expr $c0-$s0+0.0 ]
+		
+		set va1 [ expr $c1-$s1+0.0 ]
+		set va2 [ expr $c2-$s2+0.0 ]
+			
+			if { [ expr abs($va0) < $inf ] && [ expr abs($va1) < $inf ] && [ expr abs($va2) < $inf ] } {
+				return 1
+			}
+		
+	return 0
+
+}
+
+
+######get two atom vector
+proc index_vec_com { a b } {
+
+set a1 [ [ atomselect top "index $a " ] get { x y z }]
+set b1 [ [ atomselect top "index $b " ] get { x y z }]
+
+set a2 [ lindex $a1 0 ]
+set b2 [ lindex $b1 0 ]
+
+return [ get_vec $a2 $b2]
+
+
+}
+
+#### draw line by tow atom
+proc draw_line2 { st ent } {
+
+	set st_xyz [  [ atomselect top  "index $st" ] get  {x y z} ]
+	set ent_xyz [ [  atomselect top  "index $ent" ] get  {x y z} ]
+	set ia [lindex $st_xyz 0]
+	set ix [lindex $ia 0]
+	set iy [lindex $ia 1]
+	set iz [lindex $ia 2]
+
+	set ta [lindex $ent_xyz 0]
+	set zx [lindex $ta 0]
+	set zy [lindex $ta 1]
+	set zz [lindex $ta 2]
+
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+
+	draw color red
+	set drawid [ draw line "$zx $zy $zz" "$ix $iy $iz" width 2 style dashed ]
+	add_drawidlist $drawid
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+	set tx [expr ($ix+$zx)/2]
+	set ty [expr ($iy+$zy)/2]
+	set tz [expr ($iz+$zz)/2]
+	set sss [format  "%.2f"  $dis ] 
+	set rr [ draw text "$tx $ty $tz" $sss ]
+	add_drawidlist $rr
+	draw color blue
+
+	return $drawid
+
+
+}
+
+
+
+
+proc draw_line { st ent } {
+
+	set st_xyz [  [ atomselect top  "index $st" ] get  {x y z} ]
+	set ent_xyz [ [  atomselect top  "index $ent" ] get  {x y z} ]
+	set ia [lindex $st_xyz 0]
+	set ix [lindex $ia 0]
+	set iy [lindex $ia 1]
+	set iz [lindex $ia 2]
+
+	set ta [lindex $ent_xyz 0]
+	set zx [lindex $ta 0]
+	set zy [lindex $ta 1]
+	set zz [lindex $ta 2]
+
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+
+
+	set drawid [ draw line "$zx $zy $zz" "$ix $iy $iz" width 2 style dashed ]
+
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+	set tx [expr ($ix+$zx)/2]
+	set ty [expr ($iy+$zy)/2]
+	set tz [expr ($iz+$zz)/2]
+	set sss [format  "%.2f"  $dis ] 
+	draw text "$tx $ty $tz" $sss
+
+
+	return $drawid
+
+
+}
+
+#### get line distance
+proc get_line { st ent } {
+
+	set st_xyz [  [ atomselect top  "index $st" ] get  {x y z} ]
+	set ent_xyz [ [  atomselect top  "index $ent" ] get  {x y z} ]
+	set ia [lindex $st_xyz 0]
+	set ix [lindex $ia 0]
+	set iy [lindex $ia 1]
+	set iz [lindex $ia 2]
+
+	set ta [lindex $ent_xyz 0]
+	set zx [lindex $ta 0]
+	set zy [lindex $ta 1]
+	set zz [lindex $ta 2]
+
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+	puts --------distance------------$dis
+	return $dis
+
+
+}
+
+proc get_line2 { st ent } {
+
+	set st_xyz [  [ atomselect top  "index $st" ] get  {x y z} ]
+	set ent_xyz [ [  atomselect top  "index $ent" ] get  {x y z} ]
+	set ia [lindex $st_xyz 0]
+	set ix [lindex $ia 0]
+	set iy [lindex $ia 1]
+	set iz [lindex $ia 2]
+
+	set ta [lindex $ent_xyz 0]
+	set zx [lindex $ta 0]
+	set zy [lindex $ta 1]
+	set zz [lindex $ta 2]
+
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+	#puts --------distance------------$dis
+	return $dis
+
+
+}
+#############################################
+set select_mode 1
+set gl_id_list {}
+set gl_piid_list {}
+set gl_pipi_list {}
+######################
+
+#####draw pi line by pi_atom_list,atom
+proc draw_pi_line { a b } {
+
+
+	set sel [atomselect top "index $b"]
+	set stxyz [measure center $sel]
+	set ix [lindex $stxyz 0]
+	set iy [lindex $stxyz 1]
+	set iz [lindex $stxyz 2]
+
+
+
+	set atent [  atomselect top  "index $a" ]
+	set ent_xyz [ $atent get  {x y z} ]
+	set ta [lindex $ent_xyz 0]
+	set zx [lindex $ta 0]
+	set zy [lindex $ta 1]
+	set zz [lindex $ta 2]
+
+
+
+
+	set ssid [ draw line "$zx $zy $zz" "$ix $iy $iz" width 2 style dashed ]
+
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+	set tx [expr ($ix+$zx)/2]
+	set ty [expr ($iy+$zy)/2]
+	set tz [expr ($iz+$zz)/2]
+	set sss [format  "%.2f"  $dis ] 
+	draw text "$tx $ty $tz" $sss
+
+	return $ssid 
+
+
+}
+
+proc draw_pipi_line { a b } {
+
+	set sel [atomselect top "index $b"]
+	set stxyz [measure center $sel]
+	set ix [lindex $stxyz 0]
+	set iy [lindex $stxyz 1]
+	set iz [lindex $stxyz 2]
+
+
+	set sel [atomselect top "index $a"]
+	set stxyz [measure center $sel]
+	set zx [lindex $stxyz 0]
+	set zy [lindex $stxyz 1]
+	set zz [lindex $stxyz 2]
+
+
+		
+
+
+	set ssid [ draw line "$zx $zy $zz" "$ix $iy $iz" width 2 style dashed ]
+
+	set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+	set tx [expr ($ix+$zx)/2]
+	set ty [expr ($iy+$zy)/2]
+	set tz [expr ($iz+$zz)/2]
+	set sss [format  "%.2f"  $dis ] 
+	draw text "$tx $ty $tz" $sss
+				
+
+	return $ssid 
+
+
+}
+
+######################
+
+
+proc conect_pipi_bond { a b } {
+	puts ------------------------------------conect_pipi_bond
+	global gl_vl
+	global gl_pipi_list
+	global benlistall
+	set vec_r [ index_vec_com  $a $b ]
+
+	index_find $a
+	set a_f $gl_vl
+	#puts a_f----------------$a_f
+
+	index_find $b
+	set b_f $gl_vl
+	#puts b_f----------------$b_f
+
+	set val {}
+	set val2 {}
+
+	foreach i $a_f {
+		foreach j $b_f {
+			set vec_c [ index_vec_com  $i $j ]
+			set xr [ check_same_vec $vec_r $vec_c ]
+			if { $xr == 1} {
+			
+				set j_fra [ [ atomselect top "index $j" ] get fragment ]
+				#puts find----------fragment--$j_fra
+				#puts aaaaaa--$benlistall
+				foreach { q w } $benlistall {
+					#puts [ format "%s %s " $j_fra  $w ] 
+					if { $w == $j_fra } {
+						
+						set  fid [ lsearch -exact $q $j ]
+						if { $fid != -1 } {
+								
+								set i_fra [ [ atomselect top "index $i" ] get fragment ]
+								foreach { q2 w2 } $benlistall {
+									if { $w2 == $i_fra } {
+										set  fid [ lsearch -exact $q2 $i ]
+										if { $fid != -1 } {
+												
+												set d_id [ draw_pipi_line $q2 $q  ]
+												lappend val $d_id
+												foreach m $q {
+													foreach m2 $q2 {
+														#puts [ format "%s--%s" $m2 $m ]
+														set xf [ format "%s_%s" $m2 $m ]
+														lappend val2 $xf
+														set xf [ format "%s_%s" $m $m2 ]
+														lappend val2 $xf
+													}
+													
+											
+												}
+									
+											}
+								
+								
+									}
+							
+							
+							
+								}
+						
+						} 
+					
+					}
+				
+				
+				}
+			
+		
+			}
+		
+		
+			
+			
+		}
+
+	}
+
+	lappend gl_pipi_list  $val2
+	lappend gl_pipi_list  $val
+	#puts $gl_piid_list
+}
+
+
+
+
+
+
+
+###################
+proc conect_pi_bond { a b } {
+	puts ------------------------------------conect_pi_bond
+	global gl_vl
+	global gl_piid_list
+	global benlistall
+	set vec_r [ index_vec_com  $a $b ]
+
+	index_find $a
+	set a_f $gl_vl
+	puts a_f----------------$a_f
+
+	index_find $b
+	set b_f $gl_vl
+	puts b_f----------------$b_f
+
+	set val {}
+	set val2 {}
+
+	foreach i $a_f {
+		foreach j $b_f {
+			set vec_c [ index_vec_com  $i $j ]
+			set xr [ check_same_vec $vec_r $vec_c ]
+			if { $xr == 1} {
+			
+				set j_fra [ [ atomselect top "index $j" ] get fragment ]
+				#puts find----------fragment--$j_fra
+				#puts aaaaaa--$benlistall
+				foreach { q w } $benlistall {
+					#puts [ format "%s %s " $j_fra  $w ] 
+					if { $w == $j_fra } {
+						
+						set  fid [ lsearch -exact $q $j ]
+						if { $fid != -1 } {
+							set d_id [ draw_pi_line $i $q  ]
+							lappend val $d_id
+							foreach m $q {
+							#puts [ format "%s--%s" $i $m ]
+							set xf [ format "%s_%s" $i $m ]
+							lappend val2 $xf
+							
+							}
+						
+						} 
+					
+					}
+				
+				
+				}
+			
+		
+			}
+		
+		
+			
+			
+		}
+
+	}
+
+	lappend gl_piid_list  $val2
+	lappend gl_piid_list  $val
+	#puts $gl_piid_list
+}
+
+proc conect_bond2 { a b } {
+	puts ----------------------------------------conect_bond2
+	global gl_vl
+	global gl_id_list
+
+	set vec_r [ index_vec_com  $a $b ]
+	index_find $a
+	set a_f $gl_vl
+	puts $a_f
+
+	index_find $b
+	set b_f $gl_vl
+	puts $b_f
+
+	set val {}
+	set val2 {}
+	foreach i $a_f {
+		foreach j $b_f {
+			set vec_c [ index_vec_com  $i $j ]
+			set xr [ check_same_vec $vec_r $vec_c ]
+			if { $xr == 1} {
+					puts [ format "%s--%s" $i $j ]
+					set xf [ format "%s_%s" $i $j ]
+					lappend val2 $xf
+					set xf [ format "%s_%s" $j $i ]
+					lappend val2 $xf
+					
+					
+					set d_id [ draw_line $i $j ]
+					lappend val $d_id
+				}
+			}
+
+		}
+
+	lappend gl_id_list  $val2
+	lappend gl_id_list  $val
+	 
+}
+
+
+proc draw_conenct { a b } {
+
+global select_mode
+global gl_id_list
+global gl_piid_list 
+global gl_pipi_list 
+if { $select_mode == 1 } { set  inlist $gl_id_list } elseif { $select_mode == 2 } { set  inlist $gl_piid_list } else { set  inlist  $gl_pipi_list }
+
+
+	set id [ format "%s_%s" $a $b ]
+	set is_f 0	
+	set rex {}
+	foreach { i j } $inlist {
+			set xn 0
+			foreach y $i {
+					if { $id == $y } {
+					set is_f 1
+					set xn 1
+					puts ppp--_$j
+					
+					foreach x $j {
+						draw delete $x
+						}
+					
+					
+					}
+			
+			}
+			if { $xn != 1 } { lappend rex $i;lappend rex $j }
+			
+		}
+		
+		
+	puts current__Mode-------------------------------------$select_mode
+	
+	if { $is_f == 0 } {
+			
+		if { $select_mode == 1 } { conect_bond2 $a $b  } elseif { $select_mode == 2 } { conect_pi_bond $a $b } else { conect_pipi_bond $a $b }
+	} else {
+		if { $select_mode == 1 } { set  gl_id_list  $rex } elseif { $select_mode == 2 } { set  gl_piid_list  $rex } else { set  gl_pipi_list $rex }
+	}
+	
+} 
+
+
+
+
+#############################3
+proc changemode  { a } {
+	global select_mode
+	global draw_sp
+	global draw_sp2
+	global pick_atom
+	global pick_atom2
+
+	draw delete $draw_sp
+					draw delete $draw_sp2
+					set draw_sp 0
+					set draw_sp2 0
+					
+					
+					set pick_atom  -1 
+					set pick_atom2  -1 
+					
+	set select_mode $a
+}
+####################
+
+###########################################
+proc delete_draw_index { id } {
+	global gl_id_list
+	foreach { i j } $gl_id_list {
+		if { $id == $i } {
+			puts ppp--_$j
+			foreach x $j {
+			draw delete $x
+			}
+		}
+	}
+
+}
+#########################################
+mouse mode 4
+mouse mode pick
+
+set draw_sp 0
+set draw_sp2 0
+set pick_atom -1
+set pick_atom2 -1
+proc printtouch { } {
+
+	global draw_sp
+	global draw_sp2
+	global pick_atom
+	global pick_atom2
+	puts [ format "sp0:%s sp2:%s p1:%s P2:%s " $draw_sp $draw_sp2 $pick_atom $pick_atom2 ]
+}
+
+
+set an 0
+proc mol_pick_index3 { args } {
+	global an
+	global draw_sp
+	global draw_sp2
+	global pick_atom
+	global pick_atom2
+	global vmd_pick_atom vmd_pick_mol
+
+	#puts vmd_pick_atom$vmd_pick_atom
+	#puts vmd_pick_mol$vmd_pick_mol
+
+
+	if { $pick_atom == -1 } { 
+		set pick_atom  $vmd_pick_atom 
+		#puts one_atom---------$pick_atom 
+		set sp  [ [ atomselect $vmd_pick_mol "index $vmd_pick_atom" ] get {x y z} ]
+		draw color red
+		set draw_sp [ draw sphere [ lindex $sp 0 ] radius 0.3  resolution 50 ]
+		
+	} else { 
+		if { $vmd_pick_atom == $pick_atom && $draw_sp2 == 0 } { 
+			
+			 puts is---same------
+
+		} else {
+			if { $draw_sp2 == 0 } {
+				set sp  [ [ atomselect $vmd_pick_mol "index $vmd_pick_atom" ] get {x y z} ]
+				draw color blue
+				set draw_sp2 [ draw sphere [ lindex $sp 0 ] radius 0.3  resolution 50 ]
+				set pick_atom2  $vmd_pick_atom 
+				get_line $pick_atom2 $pick_atom
+				
+				
+			} else {
+				
+				if { $vmd_pick_atom == $pick_atom} {
+					draw delete $draw_sp
+					draw delete $draw_sp2
+					set draw_sp 0
+					set draw_sp2 0
+					puts [ format "aaaaaaaa%s\t%s" $pick_atom $pick_atom2  ] 
+					draw_conenct $pick_atom $pick_atom2 
+					set pick_atom  -1 
+					set pick_atom2  -1 
+				
+				} else {
+					#set an [ expr $an +1 ]
+					#if { $an > 6 } {
+					
+					 	draw delete $draw_sp
+							draw delete $draw_sp2
+							set draw_sp 0
+							set draw_sp2 0
+					 	set pick_atom  -1 
+						set pick_atom2  -1 
+					 
+					  #}
+				
+				}
+				
+			
+			}
+			
+		}
+	}
+
+}
+
+
+proc write_dist {}  {
+#######################
+	set icc 0
+	set fpx [open "pymol_dist_list.txt" w]
+	global gl_id_list
+	foreach { i j } $gl_id_list {
+		set icc [ expr $icc +1 ]
+		foreach x $i {
+			
+			set rt [ format "%s_%s" $x $icc]	
+			puts $fpx $rt
+		}
+	}
+	close $fpx
+	#######################
+	set icc 0
+	set fpx [open "pymol_pidist_list.txt" w]
+	global gl_piid_list
+	foreach { i j } $gl_piid_list {
+		set icc [ expr $icc +1 ]
+		foreach x $i {
+			
+			set rt [ format "%s_%s" $x $icc]	
+			puts $fpx $rt
+		}
+	}
+	close $fpx
+
+	############################
+	set icc 0
+	set fpx [open "pymol_pipidist_list.txt" w]
+	global gl_pipi_list
+	foreach { i j } $gl_pipi_list {
+		set icc [ expr $icc +1 ]
+		foreach x $i {
+			
+			set rt [ format "%s_%s" $x $icc]	
+			puts $fpx $rt
+		}
+	}
+	close $fpx
+
+
+	####################
+
+
+
+
+}
+
+
+######################
+
+proc del_list_index { i lis } {
+	set re { }
+	foreach x $lis {
+		if { $x != $i} {lappend re $x}
+	}
+	return $re
+}
+
+proc ph_list_get_next { i list2   } {
+
+	set ins -1
+	foreach j $list2 {
+		set ins [expr $ins +1 ]
+		if { $j =="a" } { continue }
+		if { $i == $j} {
+			return $ins
+		}
+		
+		
+	}
+
+return -1
+}
+
+
+proc del_Ph_list_in_list { list1 list2 } {
+	set ret { }
+	foreach i $list1 {
+		set isq 0
+		if { $i =="a" } { continue }
+		foreach j $list2 { 
+			if { $i == $j } { set isq 1 ; break }
+		}
+		if { $isq == 0 } { lappend ret $i}
+	}
+	
+	return $ret
+}
+
+######
+set istrue 0
+set reben { }
+
+
+proc find_Ph_group { aytom lista  okben  ff } {
+	global istrue
+	global reben
+
+	set okl [llength $okben]
+
+	if { $okl == 5 } { 
+
+		set selid  [ [ atomselect top " withinbonds 1 of index $aytom " ] list  ]
+		set  fid [ lsearch -exact $selid $ff ]
+
+			if { $fid != -1 } { lappend okben $ff ; set reben $okben;set istrue 1; return }
+			
+			return  
+		}
+
+
+	set selid [ del_list_index $aytom [ [ atomselect top " withinbonds 1 of index $aytom " ] list ] ]
+
+		foreach yu $selid {
+			
+				set ry [ ph_list_get_next $yu $lista  ]
+				
+				if { $ry != "-1" } { set coben $okben;lappend coben $yu ; set lxx $lista ;lset lxx $ry a  ; find_Ph_group $yu $lxx $coben $ff } 
+				if { $istrue == 1 } { return }
+			}
+
+}
+
+
+
+
+set numall [  llength [ [atomselect top all ]  list ] ]
+set numfra [llength [[ atomselect top "fragment 0" ] list ] ]
+set fragcount [expr  $numall/$numfra]
+
+
+
+
+for { set g 0 } { $g < $fragcount } {  incr g } {
+	
+
+	set apai [ [ atomselect top "ringsize 6 from fragment $g "] list ]
+	set pai_num  [ expr  [llength $apai]/6]
+
+		for { set ine  0 }  { $ine < $pai_num } {  incr ine  } {
+
+			set fi [lindex $apai 0]
+			set reben { }
+			lset  apai 0 a
+			find_Ph_group $fi $apai {} $fi		
+			lappend benlistall $reben 
+			lappend benlistall  $g
+			set  istrue 0
+			
+			set apai [ del_Ph_list_in_list $apai $reben ]
+
+		}
+
+
+	}
+
+
+	
+	
+proc get_dist_x {  a }  {
+	global maxindex
+	set outlist [ [ atomselect top "exwithin 3.8 of fragment $a" ] list ]
+	set inlist [ [ atomselect top "fragment $a" ] list ]
+	set list_dist {}
+	set list_index_dist {}
+	foreach i $inlist {
+		foreach j $outlist {
+			set idist [ get_line2 $i $j ]
+			if { $idist  < 3.8 } { 
+			   lappend list_dist  $idist 
+			   #set op [ format "%s_%s" $i $j ]
+			   lappend list_index_dist  $idist 
+			   lappend list_index_dist  $i
+			   lappend list_index_dist  $j
+			 }
+		}
+
+	}
+	set sort_list [ lsort -real $list_dist ]
+	set llen [ llength $sort_list]
+	set relist {}
+	set pri_list {}
+	set outlist_atom {}
+	set ind 0
+	if { $llen > $maxindex } {  set ind $maxindex } else { set ind $llen }
+		
+	for { set xi 0}  { $xi < $ind } { incr xi } { lappend relist  [ lindex $sort_list $xi] }
+
+	foreach di $relist {
+		foreach { i j h } $list_index_dist {
+			if { $i == $di } { lappend pri_list $i ; lappend pri_list $j ; lappend pri_list $h ; lappend outlist_atom $h }
+		}
+	}
+
+	#puts $pri_list
+	foreach { i j h } $pri_list {
+		draw_line2 $j $h
+		#conect_bond2 $j $h
+	}
+	set xxn [ format "index %s" $outlist_atom ]
+	puts $xxn
+}	
+
+proc find_first_dist { cxyz a } {
+
+	set zx [lindex $cxyz 0]
+	set zy [lindex $cxyz 1]
+	set zz [lindex $cxyz 2]
+	set dist_list {}
+	set dist_list2 {}
+
+	set inlist [ [ atomselect top "fragment $a" ] get { x y z } ]
+	#puts $inlist
+
+
+	foreach  i   $inlist {
+		set ix [lindex $i 0]
+		set iy [lindex $i 1]
+		set iz [lindex $i 2]
+		set dis [expr ( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+		lappend dist_list $dis
+		lappend dist_list2 $dis
+		lappend dist_list2 $i
+	}
+
+	set sort_list [ lsort -real $dist_list ]
+	if { [  llength $sort_list ] > 0 } { 
+		set in1 [ lindex $sort_list 0 ]
+		foreach { b n } $dist_list2 {
+			if { $b == $in1 } { 
+				#puts $n
+				if { $b < 3.8*3.8 } { 
+					draw color green 
+					set ix [lindex $n 0]
+					set iy [lindex $n 1]
+					set iz [lindex $n 2]
+					set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+					set drawid [ draw line "$zx $zy $zz" "$ix $iy $iz" width 2 style dashed ]
+					add_drawidlist $drawid
+
+					set dis [expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+					set tx [expr ($ix+$zx)/2]
+					set ty [expr ($iy+$zy)/2]
+					set tz [expr ($iz+$zz)/2]
+					set sss [format  "%.2f"  $dis ] 
+					set rr [ draw text "$tx $ty $tz" $sss ]
+					add_drawidlist $rr
+					draw color blue
+				}
+			
+			 }
+		}
+
+	}
+
+}
+	
+proc get_pi_distx { a } {
+	global benlistall
+	set outlist [ lsort -u [ [ atomselect top "same fragment as { exwithin 3.8 of fragment $a }" ] get fragment  ]]
+
+	#set inlist [ [ atomselect top "fragment $a" ] list ]
+
+	#puts $outlist
+	foreach xi $outlist {
+		foreach { i j } $benlistall {
+			if { $j == $xi } {
+				set xc [ measure center [ atomselect top "index  $i" ] ]
+				find_first_dist $xc $a
+				
+			}
+
+		}
+	}
+
+	foreach { i j } $benlistall {
+		if { $j == $a } {
+			set xc [ measure center [ atomselect top "index  $i" ] ]
+			find_first_dist  $xc  $outlist
+		}
+
+	}
+
+
+} 	
+
+
+proc draw_xyz { a b  } {
+
+	set zx [lindex $a 0]
+	set zy [lindex $a 1]
+	set zz [lindex $a 2]
+
+	set ix [lindex $b 0]
+	set iy [lindex $b 1]
+	set iz [lindex $b 2]
+	set dis [ expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+
+
+	draw color purple
+	set drawid [ draw line "$zx $zy $zz" "$ix $iy $iz" width 2 style dashed ]
+	add_drawidlist $drawid 
+	set tx [expr ($ix+$zx)/2]
+	set ty [expr ($iy+$zy)/2]
+	set tz [expr ($iz+$zz)/2]
+	set sss [format  "%.2f"  $dis ] 
+	set rr [ draw text "$tx $ty $tz" $sss ]
+	add_drawidlist $rr
+
+	draw color blue
+
+
+
+}
+proc pipi_xyz { a b } {
+
+	##############
+	set zx [lindex $a 0]
+	set zy [lindex $a 1]
+	set zz [lindex $a 2]
+
+	set ix [lindex $b 0]
+	set iy [lindex $b 1]
+	set iz [lindex $b 2]
+		
+
+	set dis [ expr sqrt( ($ix-$zx)**2+($iy-$zy)**2+($iz-$zz)**2  )]
+									
+	return $dis				
+
+
+	###############
+
+}
+
+proc get_pipi_dist { a } {
+	global maxindex
+	global benlistall
+	set outlist [ lsort -u [ [ atomselect top "same fragment as { exwithin 3.8 of fragment $a }" ] get fragment  ]]
+	set outben_xyz {}
+	set inben_xyz {}
+
+	foreach { i j } $benlistall {
+		if { $j == $a } { 
+			set xc [ measure center [ atomselect top "index  $i" ] ]
+			lappend inben_xyz $xc
+		}
+		foreach xi $outlist {
+			if { $xi == $j } {
+				set xc [ measure center [ atomselect top "index  $i" ] ]
+				lappend outben_xyz $xc
+			}
+		
+		}
+
+	}
+	#puts $inben_xyz
+	#puts $outben_xyz
+	set dist_list {}
+	set dist_list2 {}
+	foreach zi $outben_xyz {
+		foreach zy $inben_xyz {
+			set re [ pipi_xyz  $zi $zy ]
+			lappend dist_list $re
+			lappend dist_list2 $re
+			lappend dist_list2 $zi
+			lappend dist_list2 $zy
+		}
+
+	}
+	set sort_list [ lsort -real $dist_list ]
+	set llen [ llength $sort_list]
+	set ind 0
+	if { $llen > $maxindex } {  set ind $maxindex } else { set ind $llen }
+
+	set relist {}
+	for { set xi 0}  { $xi < $ind } { incr xi } { lappend relist  [ lindex $sort_list $xi] }
+
+	foreach hh $relist {
+		foreach { xa xb xc } $dist_list2 {
+			if  { $xa == $hh } {
+				draw_xyz $xb $xc
+			
+			}
+
+		}
+
+
+	}
+
+
+}
+
+
+	
+proc get_frag_dist { a b } {
+	deldrawid
+	if {$b == 0 } {
+	changemode 1
+	get_dist_x $a
+	get_pi_distx $a
+	get_pipi_dist $a
+	} elseif  {$b == 1 } {
+		changemode 1
+		get_dist_x $a
+	} elseif {$b == 2 } {
+		changemode 2
+		get_pi_distx $a
+	} elseif  {$b == 3 } {
+		changemode 3
+		get_pipi_dist  $a
+	}
+}
+
