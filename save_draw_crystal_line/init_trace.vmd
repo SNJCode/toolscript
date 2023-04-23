@@ -1,1 +1,0 @@
-trace add variable ::vmd_pick_event write mol_pick_index3
