@@ -4,8 +4,6 @@
 </ul>
 <h2>The functionality is now implemented</h2>
 <ul>
-<li><p>Data is read from multiple texts and generated in the same line chart</p>
-</li>
 <li><p>Two-dimensional data is read from text to generate heat maps</p>
 </li>
 </ul>
